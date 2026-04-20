@@ -16,9 +16,9 @@ class Field:
     def __get__(self, instance, owner=None):
         if instance is None:
             return self
-        val = struct.unpack_from(self.format, instance._buffer, self.offset)
+        val = struct.unpack_from(self.format, instance.buffer, self.offset)
         # instance.__dict__[self._name] = val
-        return val
+        return val[0] if len(val) == 1 else val
 
 
 class FieldMeta(type):
@@ -37,18 +37,17 @@ class FieldBase(metaclass=FieldMeta):
     def __init__(self, bytedata):
         self.buffer = memoryview(bytedata)
 
-    @classmethod
-    def as_csv(cls):
-        return ", ".join(f"{f, cls.__dict__[f]}" for f in cls._fields)
+    def as_csv(self):
+        return ", ".join(f"{name}={getattr(self, name)}" for name, _ in self._fields)
 
 
 class PolyHeader(FieldBase):
     _fields = [
         ("code", "<i"),
-        ("min_x", "<dd"),
-        ("min_y", "<dd"),
-        ("max_x", "<dd"),
-        ("max_y", "<dd"),
+        ("min_x", "<d"),
+        ("min_y", "<d"),
+        ("max_x", "<d"),
+        ("max_y", "<d"),
         ("num_polys", "<i"),
     ]
 
