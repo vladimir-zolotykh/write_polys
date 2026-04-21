@@ -21,19 +21,34 @@ class Field:
         return val[0] if len(val) == 1 else val
 
 
+class NestedType(Field):
+    def __init__(self, sub_type, offset, name=None):
+        self.sub_type = sub_type
+        self.offset = offset
+        self._name = name
+
+    def __get__(self, instance, owner=None):
+        if instance is None:
+            return self
+        val = self.sub_type(self.offset)
+        instance.__dict__[self._name] = val
+        return val
+
+
 class FieldMeta(type):
     def __new__(mcls, clsname, bases, clsdict, **kwargs):
         fields = clsdict.get("_fields", [])
         newdict = dict(clsdict)
         offset: int = 0
         for name, fmt_or_class in fields:
+            print(fmt_or_class)
             if isinstance(fmt_or_class, str):
                 fmt: str = fmt_or_class
                 newdict[name] = Field(fmt, offset, name=name)
                 offset += struct.calcsize(fmt)
-            elif isinstance(fmt_or_class, FieldBase):
+            elif isinstance(fmt_or_class, FieldMeta):
                 newtype: type = fmt_or_class
-                newdict[name] = newtype(newtype.buffer[offset:])
+                newdict[name] = NestedType(newtype, offset, name=name)
                 offset += newtype.buf_size
             else:
                 raise TypeError(f"{fmt_or_class}: expected str or FieldBase")
