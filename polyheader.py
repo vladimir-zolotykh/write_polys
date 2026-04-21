@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # PYTHON_ARGCOMPLETE_OK
+from typing import Iterator, BinaryIO, Any
 import struct
 
 
@@ -82,7 +83,24 @@ class PolyHeader(FieldBase):
     ]
 
 
+class SizedRecord:
+    def __init__(self, f: BinaryIO):
+        self.f = f
+        s = struct.Struct("<i")
+        self.num_items = s.unpack(f.read(s.size))[0]
+
+    def iter_as(self, fmt: str = "<dd") -> Iterator[Any]:
+        for _ in range(self.num_items):
+            s = struct.Struct(fmt)
+            buf = self.f.read(s.size)
+            yield s.unpack(buf)
+
+
 if __name__ == "__main__":
     with open("polys.bin", "rb") as f:
         ph = PolyHeader(f.read(PolyHeader.buf_size))
         print(ph.as_csv())
+        for _ in range(ph.num_polys):
+            rec = SizedRecord(f)
+            for p in rec.iter_as("<dd"):
+                print(p)

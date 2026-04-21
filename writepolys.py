@@ -23,8 +23,10 @@ def write_polys(filename, polys: PolysT) -> None:
 
         poly: PolyT
         for poly in polys:
-            size = len(poly) * struct.calcsize("<dd")
-            f.write(struct.pack("<i", size + 4))
+            # size = len(poly) * struct.calcsize("<dd")
+            size = len(poly)
+            # f.write(struct.pack("<i", size + 4))
+            f.write(struct.pack("<i", size))
             for pt in poly:
                 f.write(struct.pack("<dd", *pt))
 
