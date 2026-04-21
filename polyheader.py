@@ -3,6 +3,8 @@
 # PYTHON_ARGCOMPLETE_OK
 from typing import Iterator, BinaryIO, Any
 import struct
+import pprint
+import writepolys
 
 
 class Field:
@@ -100,7 +102,6 @@ if __name__ == "__main__":
     with open("polys.bin", "rb") as f:
         ph = PolyHeader(f.read(PolyHeader.buf_size))
         print(ph.as_csv())
-        for _ in range(ph.num_polys):
-            rec = SizedRecord(f)
-            for p in rec.iter_as("<dd"):
-                print(p)
+        poly = [[p for p in SizedRecord(f).iter_as("<dd")] for _ in range(ph.num_polys)]
+        assert poly == writepolys.polys
+        pprint.pprint(poly)
