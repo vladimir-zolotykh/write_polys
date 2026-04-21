@@ -30,7 +30,8 @@ class NestedType(Field):
     def __get__(self, instance, owner=None):
         if instance is None:
             return self
-        val = self.sub_type(self.offset)
+        o = self.offset
+        val = self.sub_type(instance.buffer[o:])
         instance.__dict__[self._name] = val
         return val
 
@@ -41,7 +42,6 @@ class FieldMeta(type):
         newdict = dict(clsdict)
         offset: int = 0
         for name, fmt_or_class in fields:
-            print(fmt_or_class)
             if isinstance(fmt_or_class, str):
                 fmt: str = fmt_or_class
                 newdict[name] = Field(fmt, offset, name=name)
