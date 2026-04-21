@@ -63,6 +63,8 @@ class FieldBase(metaclass=FieldMeta):
     def as_csv(self):
         return ", ".join(f"{name}={getattr(self, name)}" for name, _ in self._fields)
 
+    __str__ = as_csv
+
 
 class Point(FieldBase):
     _fields = [
