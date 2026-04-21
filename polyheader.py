@@ -26,9 +26,17 @@ class FieldMeta(type):
         fields = clsdict.get("_fields", [])
         newdict = dict(clsdict)
         offset: int = 0
-        for name, fmt in fields:
-            newdict[name] = Field(fmt, offset, name=name)
-            offset += struct.calcsize(fmt)
+        for name, fmt_or_class in fields:
+            if isinstance(fmt_or_class, str):
+                fmt: str = fmt_or_class
+                newdict[name] = Field(fmt, offset, name=name)
+                offset += struct.calcsize(fmt)
+            elif isinstance(fmt_or_class, FieldBase):
+                newtype: type = fmt_or_class
+                newdict[name] = newtype(newtype.buffer[offset:])
+                offset += newtype.buf_size
+            else:
+                raise TypeError(f"{fmt_or_class}: expected str or FieldBase")
         newdict["buf_size"] = offset
         return super().__new__(mcls, clsname, bases, newdict, **kwargs)
 
@@ -41,13 +49,18 @@ class FieldBase(metaclass=FieldMeta):
         return ", ".join(f"{name}={getattr(self, name)}" for name, _ in self._fields)
 
 
+class Point(FieldBase):
+    _fields = [
+        ("x", "<d"),
+        ("y", "<d"),
+    ]
+
+
 class PolyHeader(FieldBase):
     _fields = [
         ("code", "<i"),
-        ("min_x", "<d"),
-        ("min_y", "<d"),
-        ("max_x", "<d"),
-        ("max_y", "<d"),
+        ("upper_left", Point),
+        ("bottom_right", Point),
         ("num_polys", "<i"),
     ]
 
