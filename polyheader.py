@@ -113,7 +113,8 @@ class SizedRecord:
                 s = struct.Struct(fmt)
                 buf = self.f.read(s.size)
                 yield s.unpack(buf)
-            elif isinstance(fmt, FieldBase):
+            # elif isinstance(fmt, FieldMeta):
+            elif issubclass(fmt, FieldBase):
                 field_type: type[FieldBase] = fmt
                 buf = self.f.read(field_type.buf_size)
                 yield field_type(buf)
