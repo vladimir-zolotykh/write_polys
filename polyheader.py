@@ -75,6 +75,9 @@ class Point(FieldBase):
         ("y", "<d"),
     ]
 
+    def __str__(self):
+        return f"<class {self.__class__.__name__!r}>({self.x}, {self.y})"
+
 
 class PolyHeader(FieldBase):
     _fields = [
@@ -93,15 +96,26 @@ class SizedRecord:
 
     def iter_as(self, fmt: str = "<dd") -> Iterator[Any]:
         for _ in range(self.num_items):
-            s = struct.Struct(fmt)
-            buf = self.f.read(s.size)
-            yield s.unpack(buf)
+            if isinstance(fmt, str):
+                s = struct.Struct(fmt)
+                buf = self.f.read(s.size)
+                yield s.unpack(buf)
+            elif isinstance(fmt, FieldMeta):
+                field_type: FieldMeta = fmt
+                buf = self.f.read(field_type.buf_size)
+                yield field_type(buf)
+            else:
+                raise TypeError(f"{fmt}: expected str or FieldBase-based class")
 
 
 if __name__ == "__main__":
     with open("polys.bin", "rb") as f:
         ph = PolyHeader(f.read(PolyHeader.buf_size))
         print(ph.as_csv())
-        poly = [[p for p in SizedRecord(f).iter_as("<dd")] for _ in range(ph.num_polys)]
-        assert poly == writepolys.polys
-        pprint.pprint(poly)
+        # poly = [[p for p in SizedRecord(f).iter_as("<dd")] for _ in range(ph.num_polys)]
+        # assert poly == writepolys.polys
+        # pprint.pprint(poly)
+        poly = [
+            [str(p) for p in SizedRecord(f).iter_as(Point)] for _ in range(ph.num_polys)
+        ]
+        print(poly)
