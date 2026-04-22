@@ -1,10 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # PYTHON_ARGCOMPLETE_OK
-from typing import Iterator, BinaryIO, Any
+from typing import Iterator, BinaryIO, ClassVar, Any, Union, cast
 import struct
 import pprint
 import writepolys
+from typing import Protocol
+
+
+class SizedField(Protocol):
+    """Has buf_size attr"""
+
+    buf_size: int
 
 
 class Field:
@@ -50,7 +57,7 @@ class FieldMeta(type):
                 newdict[name] = Field(fmt, offset, name=name)
                 offset += struct.calcsize(fmt)
             elif isinstance(fmt_or_class, FieldMeta):
-                newtype: type = fmt_or_class
+                newtype: SizedField = cast(SizedField, fmt_or_class)
                 newdict[name] = NestedType(newtype, offset, name=name)
                 offset += newtype.buf_size
             else:
@@ -60,6 +67,9 @@ class FieldMeta(type):
 
 
 class FieldBase(metaclass=FieldMeta):
+    _fields: ClassVar[list[tuple[str, Any]]] = []
+    buf_size: ClassVar[int]
+
     def __init__(self, bytedata):
         self.buffer = memoryview(bytedata)
 
@@ -74,6 +84,8 @@ class Point(FieldBase):
         ("x", "<d"),
         ("y", "<d"),
     ]
+    x: float
+    y: float
 
     def __str__(self):
         return f"<class {self.__class__.__name__!r}>({self.x}, {self.y})"
@@ -86,6 +98,7 @@ class PolyHeader(FieldBase):
         ("bottom_right", Point),
         ("num_polys", "<i"),
     ]
+    num_polys: int
 
 
 class SizedRecord:
@@ -94,7 +107,7 @@ class SizedRecord:
         s = struct.Struct("<i")
         self.num_items = s.unpack(f.read(s.size))[0]
 
-    def iter_as(self, fmt: str = "<dd") -> Iterator[Any]:
+    def iter_as(self, fmt: str | FieldMeta = "<dd") -> Iterator[Any]:
         for _ in range(self.num_items):
             if isinstance(fmt, str):
                 s = struct.Struct(fmt)
