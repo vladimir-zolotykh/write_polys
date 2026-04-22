@@ -115,7 +115,7 @@ class SizedRecord:
                 yield s.unpack(buf)
             elif isinstance(fmt, FieldMeta):
                 field_type: FieldMeta = fmt
-                buf = self.f.read(field_type.buf_size)
+                buf = self.f.read(cast(SizedField, field_type).buf_size)
                 yield field_type(buf)
             else:
                 raise TypeError(f"{fmt}: expected str or FieldBase-based class")
